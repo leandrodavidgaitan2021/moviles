@@ -1,34 +1,55 @@
 // src/app/register.tsx
 import { Ionicons } from "@expo/vector-icons";
+import { zodResolver } from "@hookform/resolvers/zod";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import * as z from "zod";
+
+// 1. Esquema de validación con Zod para el registro
+const registerSchema = z.object({
+  nombre: z.string().min(1, "El nombre completo es requerido"),
+  email: z
+    .string()
+    .min(1, "El correo es requerido")
+    .email("Correo electrónico inválido"),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+});
+
+type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const [nombre, setNombre] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
 
-  const handleRegister = async () => {
-    if (!nombre || !email || !password) {
-      alert("Por favor completa todos los campos");
-      return;
-    }
+  // 2. Configuración de react-hook-form
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      nombre: "",
+      email: "",
+      password: "",
+    },
+  });
 
+  // 3. Función al enviar el formulario con éxito
+  const handleRegister = async (data: RegisterFormData) => {
     try {
       // Guardamos la sesión del nuevo usuario simulado
-      await AsyncStorage.setItem("@user_session", email);
-      alert(`¡Registro exitoso! Bienvenido, ${nombre}`);
+      await AsyncStorage.setItem("@user_session", data.email);
+      alert(`¡Registro exitoso! Bienvenido, ${data.nombre}`);
       router.replace("/(tabs)/perfil");
     } catch (error) {
       console.error("Error al registrar el usuario", error);
@@ -50,34 +71,71 @@ export default function RegisterScreen() {
           Regístrate para guardar tu bitácora de viaje en Colón
         </Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Nombre completo"
-          placeholderTextColor="#aaa"
-          value={nombre}
-          onChangeText={setNombre}
+        {/* Input de Nombre */}
+        <Controller
+          control={control}
+          name="nombre"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInput
+              style={styles.input}
+              placeholder="Nombre completo"
+              placeholderTextColor="#aaa"
+              onBlur={onBlur}
+              value={value}
+              onChangeText={onChange}
+            />
+          )}
         />
+        {errors.nombre && (
+          <Text style={styles.errorText}>{errors.nombre.message}</Text>
+        )}
 
-        <TextInput
-          style={styles.input}
-          placeholder="Correo electrónico"
-          placeholderTextColor="#aaa"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
+        {/* Input de Correo */}
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInput
+              style={styles.input}
+              placeholder="Correo electrónico"
+              placeholderTextColor="#aaa"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              onBlur={onBlur}
+              value={value}
+              onChangeText={onChange}
+            />
+          )}
         />
+        {errors.email && (
+          <Text style={styles.errorText}>{errors.email.message}</Text>
+        )}
 
-        <TextInput
-          style={styles.input}
-          placeholder="Contraseña"
-          placeholderTextColor="#aaa"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
+        {/* Input de Contraseña */}
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <TextInput
+              style={styles.input}
+              placeholder="Contraseña (mínimo 8 caracteres)"
+              placeholderTextColor="#aaa"
+              secureTextEntry
+              onBlur={onBlur}
+              value={value}
+              onChangeText={onChange}
+            />
+          )}
         />
+        {errors.password && (
+          <Text style={styles.errorText}>{errors.password.message}</Text>
+        )}
 
-        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleSubmit(handleRegister)}
+        >
           <Text style={styles.buttonText}>Registrarse</Text>
         </TouchableOpacity>
 
@@ -131,8 +189,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    marginBottom: 15,
+    marginBottom: 5,
     color: "#333",
+  },
+  errorText: {
+    color: "#e74c3c",
+    fontSize: 12,
+    marginBottom: 10,
+    marginLeft: 4,
   },
   button: {
     backgroundColor: "#27ae60",
