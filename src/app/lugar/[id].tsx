@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { obtenerLugares } from "../../servicios/lugares";
 import { Lugar } from "../../tipos";
+import { cambiarFavorito, esFavorito } from "../../servicios/favoritos";
 
 export default function DetalleLugarScreen() {
   const { id } = useLocalSearchParams();
