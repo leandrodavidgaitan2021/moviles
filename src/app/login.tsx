@@ -33,7 +33,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginScreen() {
   // Datos mockeados actualizados a 8 caracteres o más
   const emailMock = "turista@colon.com";
-  const passwordMock = "12345678"; // <-- Modificado aquí (8 caracteres)
+  const passwordMock = "T12345678"; // <-- Modificado aquí (8 caracteres)
 
   const router = useRouter();
 

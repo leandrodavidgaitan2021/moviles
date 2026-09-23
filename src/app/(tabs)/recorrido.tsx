@@ -1,8 +1,8 @@
 // src/app/(tabs)/recorrido.tsx
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -13,41 +13,77 @@ import {
 } from "react-native";
 import AccesoRestringido from "../../components/AccesoRestringido";
 
-const lugaresVisitados = [
-  {
-    id: "lug-001",
-    nombre: "Termas Colón",
-    fechaCheckin: "11 de Septiembre, 2026",
-    categoriaId: "cat-termas",
-  },
-  {
-    id: "lug-002",
-    nombre: "Playa Norte",
-    fechaCheckin: "12 de Septiembre, 2026",
-    categoriaId: "cat-playas",
-  },
-];
+// Definimos la interfaz para los lugares visitados
+interface VisitaItem {
+  id: string;
+  nombre: string;
+  fechaCheckin: string;
+  categoriaId: string;
+}
 
 export default function RecorridoScreen() {
   const router = useRouter();
   const [estaLogeado, setEstaLogeado] = useState<boolean>(false);
   const [cargando, setCargando] = useState<boolean>(true);
+  const [lugaresVisitados, setLugaresVisitados] = useState<VisitaItem[]>([]);
 
-  useEffect(() => {
-    async function verificarSesion() {
-      try {
-        const token = await AsyncStorage.getItem("@user_session");
-        if (token) {
-          setEstaLogeado(true);
+  // useFocusEffect se ejecuta cada vez que la pantalla cobra foco (el usuario entra a la pestaña)
+  useFocusEffect(
+    useCallback(() => {
+      let isMounted = true;
+
+      async function verificarSesionYCargarDatos() {
+        try {
+          setCargando(true);
+          const token = await AsyncStorage.getItem("@user_session");
+
+          if (!token) {
+            if (isMounted) {
+              setEstaLogeado(false);
+              setLugaresVisitados([]);
+            }
+            return;
+          }
+
+          if (isMounted) {
+            setEstaLogeado(true);
+            // TODO: Aquí en el futuro reemplazarás esto por una consulta real a tu capa de servicios o SQLite
+            // filtrando por el token o ID del usuario actual (ej: getVisitasPorUsuario(token))
+            const datosSimuladosDelUsuario: VisitaItem[] = [
+              {
+                id: "lug-001",
+                nombre: "Termas Colón",
+                fechaCheckin: "11 de Septiembre, 2026",
+                categoriaId: "cat-termas",
+              },
+              {
+                id: "lug-002",
+                nombre: "Playa Norte",
+                fechaCheckin: "12 de Septiembre, 2026",
+                categoriaId: "cat-playas",
+              },
+            ];
+            setLugaresVisitados(datosSimuladosDelUsuario);
+          }
+        } catch (error) {
+          console.error(
+            "Error al verificar la sesión o cargar recorrido:",
+            error,
+          );
+        } finally {
+          if (isMounted) {
+            setCargando(false);
+          }
         }
-      } catch (error) {
-        console.error("Error al verificar la sesión:", error);
-      } finally {
-        setCargando(false);
       }
-    }
-    verificarSesion();
-  }, []);
+
+      verificarSesionYCargarDatos();
+
+      return () => {
+        isMounted = false;
+      };
+    }, []),
+  );
 
   if (cargando) {
     return (
