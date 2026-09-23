@@ -20,6 +20,7 @@ export default function DetalleLugarScreen() {
 
   const [lugar, setLugar] = useState<Lugar | null>(null);
   const [cargando, setCargando] = useState<boolean>(true);
+  const [esFav, setEsFav] = useState<boolean>(false);
 
   useEffect(() => {
     async function cargarDetalle() {
@@ -40,6 +41,23 @@ export default function DetalleLugarScreen() {
       cargarDetalle();
     }
   }, [id]);
+
+  useEffect(() => {
+    async function verificarFavorito() {
+      if (typeof id === "string") {
+        const favorito = await esFavorito(id);
+        setEsFav(favorito);
+      }
+    }
+    verificarFavorito();
+  }, [id]);
+
+  async function cambiarEstrella() {
+    if (typeof id === "string") {
+      const nuevoEstado = await cambiarFavorito(id);
+      setEsFav(nuevoEstado);
+    }
+  }
 
   if (cargando) {
     return (
@@ -83,7 +101,19 @@ export default function DetalleLugarScreen() {
             ? lugar.categoriaId.toUpperCase().replace("CAT-", "")
             : "TURISMO"}
         </Text>
-        <Text style={styles.title}>{lugar.nombre}</Text>
+
+        <View style={styles.filaTitulo}>
+          <Text style={styles.title}>{lugar.nombre}</Text>
+          <TouchableOpacity
+            onPress={cambiarEstrella}
+            accessibilityLabel={esFav ? "Quitar de favoritos" : "Agregar a favoritos"}>
+            <Ionicons
+              name={esFav ? "star" : "star-outline"}
+              size={26}
+              color="#f1c40f"
+            />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.coordenadasContainer}>
           <Ionicons name="location-outline" size={16} color="#7f8c8d" />
@@ -138,7 +168,7 @@ export default function DetalleLugarScreen() {
       </View>
     </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
@@ -175,6 +205,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 20,
+  },
+  filaTitulo: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 10,
   },
   coordenadasText: { fontSize: 13, color: "#7f8c8d", marginLeft: 5 },
   section: { marginBottom: 25 },

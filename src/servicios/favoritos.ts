@@ -1,17 +1,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Favoritos } from "../tipos";
+import { Favorito } from "../tipos";
 
 const CLAVE_FAVORITOS = "@favoritos";
 
-async function leerFavoritos(): Promise<Favoritos[]> {
+async function leerFavoritos(): Promise<Favorito[]> {
 
     const guardados = await AsyncStorage.getItem(CLAVE_FAVORITOS);
     if (!guardados) return [];
-    return JSON.parse(guardados) as Favoritos[];
+    return JSON.parse(guardados) as Favorito[];
 
 }
 
-export async function obtenerFavoritos(): Promise<Favoritos[]> {
+export async function obtenerFavoritos(): Promise<Favorito[]> {
     return leerFavoritos();
 }
 
