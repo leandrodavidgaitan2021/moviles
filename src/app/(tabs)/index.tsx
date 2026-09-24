@@ -2,17 +2,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import FiltrosYBusqueda from "../../components/FiltrosYBusqueda";
+import MapaLugares from "../../components/MapaLugares";
+import SimuladorUbicacion from "../../components/SimuladorUbicacion";
 import { obtenerLugares } from "../../servicios/lugares";
 import { Lugar } from "../../tipos";
 
@@ -43,14 +44,19 @@ export default function PantallaInicio() {
     latitud: number;
     longitud: number;
   }>({
-    latitud: -31.8333, // Coordenadas aproximadas de Oro Verde
+    latitud: -31.8333,
     longitud: -60.5167,
   });
 
-  // Estados para el panel desplegable de simulación
   const [mostrarSimulador, setMostrarSimulador] = useState<boolean>(false);
   const [inputLat, setInputLat] = useState<string>("-32.2214");
   const [inputLon, setInputLon] = useState<string>("-58.1381");
+
+  // Estados de Búsqueda, Filtros y Ordenamiento por Distancia
+  const [busquedaTexto, setBusquedaTexto] = useState<string>("");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] =
+    useState<string>("Todos");
+  const [ordenarPorCercania, setOrdenarPorCercania] = useState<boolean>(false);
 
   useEffect(() => {
     async function inicializar() {
@@ -86,6 +92,12 @@ export default function PantallaInicio() {
     }
   };
 
+  const cambiarCoordenadasDirectas = (lat: number, lon: number) => {
+    setInputLat(lat.toString());
+    setInputLon(lon.toString());
+    setUbicacionActual({ latitud: lat, longitud: lon });
+  };
+
   const obtenerUbicacionRealGps = async () => {
     try {
       setCargando(true);
@@ -107,6 +119,55 @@ export default function PantallaInicio() {
       setCargando(false);
     }
   };
+
+  // Filtrado y ordenamiento de lugares por nombre, categoría y distancia
+  const lugaresFiltrados = useMemo(() => {
+    // 1. Filtrar
+    const filtrados = lugares.filter((lugar) => {
+      const coincideNombre = lugar.nombre
+        .toLowerCase()
+        .includes(busquedaTexto.toLowerCase());
+
+      if (categoriaSeleccionada === "Todos") {
+        return coincideNombre;
+      }
+
+      const categoriaIdFormateado = `cat-${categoriaSeleccionada.toLowerCase().split(" ")[0]}`;
+      const coincideCategoria =
+        lugar.categoriaId.toLowerCase() ===
+          categoriaSeleccionada.toLowerCase() ||
+        lugar.categoriaId.toLowerCase() === categoriaIdFormateado;
+
+      return coincideNombre && coincideCategoria;
+    });
+
+    // 2. Ordenar por cercanía si está activado el switch/botón
+    if (ordenarPorCercania) {
+      return [...filtrados].sort((a, b) => {
+        const distanciaA = calcularDistancia(
+          ubicacionActual.latitud,
+          ubicacionActual.longitud,
+          a.coordenadas.latitud,
+          a.coordenadas.longitud,
+        );
+        const distanciaB = calcularDistancia(
+          ubicacionActual.latitud,
+          ubicacionActual.longitud,
+          b.coordenadas.latitud,
+          b.coordenadas.longitud,
+        );
+        return distanciaA - distanciaB; // Del más cercano al más lejano
+      });
+    }
+
+    return filtrados;
+  }, [
+    lugares,
+    busquedaTexto,
+    categoriaSeleccionada,
+    ordenarPorCercania,
+    ubicacionActual,
+  ]);
 
   if (cargando) {
     return (
@@ -130,6 +191,14 @@ export default function PantallaInicio() {
         </TouchableOpacity>
       </View>
 
+      {/* Componente Modular de Búsqueda y Filtros */}
+      <FiltrosYBusqueda
+        busquedaTexto={busquedaTexto}
+        setBusquedaTexto={setBusquedaTexto}
+        categoriaSeleccionada={categoriaSeleccionada}
+        setCategoriaSeleccionada={setCategoriaSeleccionada}
+      />
+
       {/* Botón desplegable para simular ubicación */}
       <TouchableOpacity
         style={styles.toggleSimulador}
@@ -143,125 +212,57 @@ export default function PantallaInicio() {
         </Text>
       </TouchableOpacity>
 
-      {/* Panel Desplegable */}
-      {mostrarSimulador && (
-        <View style={styles.simuladorContainer}>
-          <Text style={styles.simuladorLabel}>
-            Latitud y Longitud Actuales:
+      {/* Componente del Simulador */}
+      <SimuladorUbicacion
+        mostrar={mostrarSimulador}
+        inputLat={inputLat}
+        inputLon={inputLon}
+        setInputLat={setInputLat}
+        setInputLon={setInputLon}
+        onAplicarManual={aplicarUbicacionManual}
+        onCambiarCoordenadas={cambiarCoordenadasDirectas}
+        onGpsReal={obtenerUbicacionRealGps}
+      />
+
+      {/* Componente del Mapa */}
+      <MapaLugares
+        ubicacionActual={ubicacionActual}
+        lugares={lugaresFiltrados}
+      />
+
+      {/* Listado de resultados y botón de ordenar por distancia */}
+      <View style={styles.cercaContainer}>
+        <View style={styles.listHeaderRow}>
+          <Text style={styles.cercaTitle}>
+            Lugares ({lugaresFiltrados.length})
           </Text>
-          <View style={styles.inputsRow}>
-            <TextInput
-              style={styles.inputCoord}
-              value={inputLat}
-              onChangeText={setInputLat}
-              keyboardType="numeric"
-              placeholder="Latitud"
-            />
-            <TextInput
-              style={styles.inputCoord}
-              value={inputLon}
-              onChangeText={setInputLon}
-              keyboardType="numeric"
-              placeholder="Longitud"
-            />
-            <TouchableOpacity
-              style={styles.botonAplicar}
-              onPress={aplicarUbicacionManual}
-            >
-              <Text style={styles.botonAplicarText}>Ir</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.sugerenciaLabel}>Accesos directos en Colón:</Text>
-          <View style={styles.chipsRow}>
-            <TouchableOpacity
-              style={styles.chip}
-              onPress={() => {
-                setInputLat("-32.2214");
-                setInputLon("-58.1381");
-                setUbicacionActual({ latitud: -32.2214, longitud: -58.1381 });
-              }}
-            >
-              <Text style={styles.chipText}>Centro / Plaza</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.chip}
-              onPress={() => {
-                setInputLat("-32.2350");
-                setInputLon("-58.1420");
-                setUbicacionActual({ latitud: -32.235, longitud: -58.142 });
-              }}
-            >
-              <Text style={styles.chipText}>Termas Colón</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.chip}
-              onPress={() => {
-                setInputLat("-32.2150");
-                setInputLon("-58.1300");
-                setUbicacionActual({ latitud: -32.215, longitud: -58.13 });
-              }}
-            >
-              <Text style={styles.chipText}>Costanera</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Botón para regresar al GPS real */}
           <TouchableOpacity
-            style={styles.botonGpsReal}
-            onPress={obtenerUbicacionRealGps}
+            style={[
+              styles.botonOrdenar,
+              ordenarPorCercania && styles.botonOrdenarActivo,
+            ]}
+            onPress={() => setOrdenarPorCercania(!ordenarPorCercania)}
           >
-            <Ionicons name="locate" size={16} color="#27ae60" />
-            <Text style={styles.botonGpsRealText}>
-              Usar mi ubicación real (GPS)
+            <Ionicons
+              name="navigate-outline"
+              size={14}
+              color={ordenarPorCercania ? "#fff" : "#27ae60"}
+            />
+            <Text
+              style={[
+                styles.botonOrdenarText,
+                ordenarPorCercania && styles.botonOrdenarTextActivo,
+              ]}
+            >
+              {ordenarPorCercania
+                ? "Más cercanos primero"
+                : "Ordenar por distancia"}
             </Text>
           </TouchableOpacity>
         </View>
-      )}
 
-      {/* Contenedor del Mapa */}
-      <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          region={{
-            latitude: ubicacionActual.latitud,
-            longitude: ubicacionActual.longitud,
-            latitudeDelta: 0.03,
-            longitudeDelta: 0.03,
-          }}
-          showsUserLocation={false}
-        >
-          {/* Marcador azul para tu posición actual o simulada */}
-          <Marker
-            coordinate={{
-              latitude: ubicacionActual.latitud,
-              longitude: ubicacionActual.longitud,
-            }}
-            title="Tu ubicación"
-            description="Posición actual o simulada"
-            pinColor="blue"
-          />
-
-          {/* Marcadores rojos para los lugares turísticos */}
-          {lugares.map((lugar) => (
-            <Marker
-              key={lugar.id}
-              coordinate={{
-                latitude: lugar.coordenadas.latitud,
-                longitude: lugar.coordenadas.longitud,
-              }}
-              title={lugar.nombre}
-              description={lugar.descripcionCorta}
-            />
-          ))}
-        </MapView>
-      </View>
-
-      {/* Sección "Cerca tuyo" */}
-      <View style={styles.cercaContainer}>
-        <Text style={styles.cercaTitle}>Cerca tuyo</Text>
         <FlatList
-          data={lugares}
+          data={lugaresFiltrados}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
             const metros = calcularDistancia(
@@ -280,7 +281,7 @@ export default function PantallaInicio() {
                 style={styles.lugarItem}
                 onPress={() => router.push(`/lugar/${item.id}`)}
               >
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={styles.lugarNombre}>{item.nombre}</Text>
                   <Text style={styles.lugarDesc} numberOfLines={1}>
                     {item.descripcionCorta}
@@ -306,16 +307,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 50,
-    paddingBottom: 12,
+    paddingBottom: 10,
     backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: "#222" },
+  headerTitle: { fontSize: 18, fontWeight: "bold", color: "#222" },
   qrButton: { padding: 6, backgroundColor: "#f0f0f0", borderRadius: 8 },
   toggleSimulador: {
     backgroundColor: "#e8f8f0",
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 15,
     flexDirection: "row",
     alignItems: "center",
@@ -326,80 +325,43 @@ const styles = StyleSheet.create({
   toggleSimuladorText: {
     color: "#27ae60",
     fontWeight: "bold",
-    fontSize: 13,
+    fontSize: 12,
     marginLeft: 6,
   },
-  simuladorContainer: {
-    backgroundColor: "#fff",
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-  },
-  simuladorLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#555",
-    marginBottom: 6,
-  },
-  inputsRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
-  inputCoord: {
-    flex: 1,
-    backgroundColor: "#f9f9f9",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontSize: 13,
-  },
-  botonAplicar: {
-    backgroundColor: "#27ae60",
-    justifyContent: "center",
+  cercaContainer: { flex: 1, padding: 15 },
+  listHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    borderRadius: 6,
+    marginBottom: 10,
   },
-  botonAplicarText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
-  sugerenciaLabel: { fontSize: 11, color: "#888", marginBottom: 4 },
-  chipsRow: { flexDirection: "row", gap: 6 },
-  chip: {
-    backgroundColor: "#f0f0f0",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
+  cercaTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
   },
-  chipText: { fontSize: 11, color: "#333", fontWeight: "500" },
-  botonGpsReal: {
+  botonOrdenar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     backgroundColor: "#e8f8f0",
-    paddingVertical: 8,
-    borderRadius: 6,
-    marginTop: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: "#c6e7d6",
-    gap: 6,
+    gap: 4,
   },
-  botonGpsRealText: {
+  botonOrdenarActivo: {
+    backgroundColor: "#27ae60",
+    borderColor: "#27ae60",
+  },
+  botonOrdenarText: {
+    fontSize: 12,
     color: "#27ae60",
     fontWeight: "600",
-    fontSize: 12,
   },
-  mapContainer: {
-    height: 250,
-    width: "100%",
-    backgroundColor: "#fff",
-  },
-  map: { ...StyleSheet.absoluteFill },
-  cercaContainer: { flex: 1, padding: 15 },
-  cercaTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#333",
+  botonOrdenarTextActivo: {
+    color: "#fff",
   },
   lugarItem: {
     flexDirection: "row",
@@ -410,11 +372,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 8,
     shadowColor: "#000",
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.03,
     shadowRadius: 2,
-    elevation: 2,
+    elevation: 1,
   },
-  lugarNombre: { fontSize: 16, fontWeight: "600", color: "#2c3e50" },
-  lugarDesc: { fontSize: 13, color: "#7f8c8d", maxWidth: 220 },
-  lugarDistancia: { fontSize: 14, fontWeight: "bold", color: "#27ae60" },
+  lugarNombre: { fontSize: 15, fontWeight: "600", color: "#2c3e50" },
+  lugarDesc: { fontSize: 12, color: "#7f8c8d", maxWidth: 220, marginTop: 2 },
+  lugarDistancia: { fontSize: 13, fontWeight: "bold", color: "#27ae60" },
 });
