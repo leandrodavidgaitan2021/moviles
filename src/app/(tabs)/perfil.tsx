@@ -2,6 +2,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
+import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -12,6 +13,7 @@ import {
 import AccesoRestringido from "../../components/AccesoRestringido";
 
 export default function PerfilScreen() {
+  const router = useRouter();
   const [estaLogeado, setEstaLogeado] = useState<boolean>(false);
   const [cargando, setCargando] = useState<boolean>(true);
   const [usuarioEmail, setUsuarioEmail] = useState<string>("");
@@ -72,6 +74,14 @@ export default function PerfilScreen() {
       </View>
 
       <TouchableOpacity
+        style={styles.favoritosButton}
+        onPress={() => router.push("/favoritos")}
+      >
+        <Ionicons name="star-outline" size={18} color="#27ae60" />
+        <Text style={styles.favoritosButtonText}>Ver mis favoritos</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         style={styles.logoutButton}
         onPress={handleCerrarSesion}
       >
@@ -129,6 +139,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#7f8c8d",
   },
+  favoritosButton: {
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 6,
+  backgroundColor: "#e8f8f0",
+  paddingVertical: 12,
+  paddingHorizontal: 20,
+  borderRadius: 8,
+  marginBottom: 12,
+  },
+  favoritosButtonText: { 
+    color: "#27ae60", 
+    fontWeight: "bold", 
+    fontSize: 14 },
   logoutButton: {
     backgroundColor: "#e74c3c",
     paddingVertical: 12,
