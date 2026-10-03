@@ -8,13 +8,13 @@ import {
   FlatList,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import FiltrosYBusqueda from "../../components/FiltrosYBusqueda";
 import MapaLugares from "../../components/MapaLugares";
 import SimuladorUbicacion from "../../components/SimuladorUbicacion";
-import { useTheme } from "../../hooks/useTheme"; // <-- Importamos el hook del tema global
+import { useTheme } from "../../hooks/useTheme";
 import { obtenerLugares } from "../../servicios/lugares";
 import { Lugar } from "../../tipos";
 
@@ -39,7 +39,7 @@ function calcularDistancia(
 
 export default function PantallaInicio() {
   const router = useRouter();
-  const { colors, theme } = useTheme(); // <-- Extraemos los colores y el tema actual
+  const { colors, theme } = useTheme();
   const [lugares, setLugares] = useState<Lugar[]>([]);
   const [cargando, setCargando] = useState<boolean>(true);
   const [ubicacionActual, setUbicacionActual] = useState<{
@@ -54,11 +54,14 @@ export default function PantallaInicio() {
   const [inputLat, setInputLat] = useState<string>("-32.2214");
   const [inputLon, setInputLon] = useState<string>("-58.1381");
 
-  // Estados de Búsqueda, Filtros y Ordenamiento por Distancia
+  // Estados de Búsqueda y Filtros
   const [busquedaTexto, setBusquedaTexto] = useState<string>("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] =
     useState<string>("Todos");
-  const [ordenarPorCercania, setOrdenarPorCercania] = useState<boolean>(false);
+
+  // Estado para controlar la visibilidad del panel desplegable
+  const [mostrarFiltrosExtra, setMostrarFiltrosExtra] =
+    useState<boolean>(false);
 
   useEffect(() => {
     async function inicializar() {
@@ -122,9 +125,8 @@ export default function PantallaInicio() {
     }
   };
 
-  // Filtrado y ordenamiento de lugares por nombre, categoría y distancia
+  // Filtrado y ordenamiento automático por cercanía
   const lugaresFiltrados = useMemo(() => {
-    // 1. Filtrar
     const filtrados = lugares.filter((lugar) => {
       const coincideNombre = lugar.nombre
         .toLowerCase()
@@ -143,33 +145,34 @@ export default function PantallaInicio() {
       return coincideNombre && coincideCategoria;
     });
 
-    // 2. Ordenar por cercanía si está activado el switch/botón
-    if (ordenarPorCercania) {
-      return [...filtrados].sort((a, b) => {
-        const distanciaA = calcularDistancia(
-          ubicacionActual.latitud,
-          ubicacionActual.longitud,
-          a.coordenadas.latitud,
-          a.coordenadas.longitud,
-        );
-        const distanciaB = calcularDistancia(
-          ubicacionActual.latitud,
-          ubicacionActual.longitud,
-          b.coordenadas.latitud,
-          b.coordenadas.longitud,
-        );
-        return distanciaA - distanciaB; // Del más cercano al más lejano
-      });
-    }
+    return [...filtrados].sort((a, b) => {
+      const distanciaA = calcularDistancia(
+        ubicacionActual.latitud,
+        ubicacionActual.longitud,
+        a.coordenadas.latitud,
+        a.coordenadas.longitud,
+      );
+      const distanciaB = calcularDistancia(
+        ubicacionActual.latitud,
+        ubicacionActual.longitud,
+        b.coordenadas.latitud,
+        b.coordenadas.longitud,
+      );
+      return distanciaA - distanciaB;
+    });
+  }, [lugares, busquedaTexto, categoriaSeleccionada, ubicacionActual]);
 
-    return filtrados;
-  }, [
-    lugares,
-    busquedaTexto,
-    categoriaSeleccionada,
-    ordenarPorCercania,
-    ubicacionActual,
-  ]);
+  const limpiarFiltros = () => {
+    setBusquedaTexto("");
+    setCategoriaSeleccionada("Todos");
+    setMostrarFiltrosExtra(false); // Ocultar también al limpiar si se desea
+  };
+
+  // Función al seleccionar una categoría específica
+  const seleccionarCategoria = (cat: string) => {
+    setCategoriaSeleccionada(cat);
+    setMostrarFiltrosExtra(false); // Se oculta automáticamente al filtrar
+  };
 
   if (cargando) {
     return (
@@ -208,14 +211,6 @@ export default function PantallaInicio() {
         </TouchableOpacity>
       </View>
 
-      {/* Componente Modular de Búsqueda y Filtros */}
-      <FiltrosYBusqueda
-        busquedaTexto={busquedaTexto}
-        setBusquedaTexto={setBusquedaTexto}
-        categoriaSeleccionada={categoriaSeleccionada}
-        setCategoriaSeleccionada={setCategoriaSeleccionada}
-      />
-
       {/* Botón desplegable para simular ubicación */}
       <TouchableOpacity
         style={[
@@ -253,44 +248,129 @@ export default function PantallaInicio() {
         lugares={lugaresFiltrados}
       />
 
-      {/* Listado de resultados y botón de ordenar por distancia */}
+      {/* Listado de resultados: Título y Botón de Filtro al lado */}
       <View style={styles.cercaContainer}>
         <View style={styles.listHeaderRow}>
           <Text style={[styles.cercaTitle, { color: colors.text }]}>
             Lugares ({lugaresFiltrados.length})
           </Text>
-          <TouchableOpacity
-            style={[
-              styles.botonOrdenar,
-              {
-                backgroundColor: theme === "dark" ? "#1a2e22" : "#e8f8f0",
-                borderColor: theme === "dark" ? "#275c3e" : "#c6e7d6",
-              },
-              ordenarPorCercania && {
-                backgroundColor: colors.primary,
-                borderColor: colors.primary,
-              },
-            ]}
-            onPress={() => setOrdenarPorCercania(!ordenarPorCercania)}
-          >
-            <Ionicons
-              name="navigate-outline"
-              size={14}
-              color={ordenarPorCercania ? "#fff" : colors.primary}
-            />
-            <Text
+
+          <View style={styles.accionesFiltroRow}>
+            {/* Botón Principal de Filtros */}
+            <TouchableOpacity
               style={[
-                styles.botonOrdenarText,
-                { color: colors.primary },
-                ordenarPorCercania && styles.botonOrdenarTextActivo,
+                styles.botonAccionFiltro,
+                {
+                  backgroundColor: theme === "dark" ? "#1a2e22" : "#e8f8f0",
+                  borderColor: theme === "dark" ? "#275c3e" : "#c6e7d6",
+                },
+              ]}
+              onPress={() => setMostrarFiltrosExtra(!mostrarFiltrosExtra)}
+            >
+              <Ionicons
+                name="funnel-outline"
+                size={13}
+                color={colors.primary}
+              />
+              <Text style={[styles.botonAccionText, { color: colors.primary }]}>
+                {categoriaSeleccionada === "Todos"
+                  ? "Filtrar"
+                  : categoriaSeleccionada}
+              </Text>
+              <Ionicons
+                name={mostrarFiltrosExtra ? "chevron-up" : "chevron-down"}
+                size={12}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+
+            {/* Botón de Limpiar (si hay filtros aplicados) */}
+            {(busquedaTexto !== "" || categoriaSeleccionada !== "Todos") && (
+              <TouchableOpacity
+                style={[
+                  styles.botonLimpiar,
+                  {
+                    backgroundColor: theme === "dark" ? "#3a1c1c" : "#fde8e8",
+                    borderColor: theme === "dark" ? "#5c2727" : "#f5c6c6",
+                  },
+                ]}
+                onPress={limpiarFiltros}
+              >
+                <Ionicons
+                  name="close-circle-outline"
+                  size={13}
+                  color="#d9534f"
+                />
+                <Text style={[styles.botonLimpiarText, { color: "#d9534f" }]}>
+                  Limpiar
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Panel desplegable que se oculta automáticamente al seleccionar categoría */}
+        {mostrarFiltrosExtra && (
+          <View
+            style={[
+              styles.panelFiltrosDesplegable,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <View
+              style={[
+                styles.searchInputContainer,
+                { backgroundColor: theme === "dark" ? "#2a2a2a" : "#f5f5f5" },
               ]}
             >
-              {ordenarPorCercania
-                ? "Más cercanos primero"
-                : "Ordenar por distancia"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <Ionicons
+                name="search"
+                size={16}
+                color={colors.textSecondary}
+                style={{ marginRight: 6 }}
+              />
+              <TextInput
+                style={[styles.searchInput, { color: colors.text }]}
+                placeholder="Buscar lugar por nombre..."
+                placeholderTextColor={colors.textSecondary}
+                value={busquedaTexto}
+                onChangeText={setBusquedaTexto}
+              />
+            </View>
+
+            <View style={styles.categoriasPildoras}>
+              {["Todos", "Playas", "Alojamientos", "Gastronomia"].map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[
+                    styles.pildora,
+                    {
+                      backgroundColor:
+                        categoriaSeleccionada === cat
+                          ? colors.primary
+                          : theme === "dark"
+                            ? "#333"
+                            : "#eee",
+                    },
+                  ]}
+                  onPress={() => seleccionarCategoria(cat)}
+                >
+                  <Text
+                    style={[
+                      styles.pildoraTexto,
+                      {
+                        color:
+                          categoriaSeleccionada === cat ? "#fff" : colors.text,
+                      },
+                    ]}
+                  >
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
 
         <FlatList
           data={lugaresFiltrados}
@@ -383,21 +463,68 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  botonOrdenar: {
+  accionesFiltroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  botonAccionFiltro: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 6,
     paddingHorizontal: 10,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     gap: 4,
   },
-  botonOrdenarText: {
+  botonAccionText: {
     fontSize: 12,
     fontWeight: "600",
   },
-  botonOrdenarTextActivo: {
-    color: "#fff",
+  botonLimpiar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 4,
+  },
+  botonLimpiarText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  panelFiltrosDesplegable: {
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 10,
+    gap: 8,
+  },
+  searchInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    height: 36,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+  },
+  categoriasPildoras: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  pildora: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  pildoraTexto: {
+    fontSize: 11,
+    fontWeight: "500",
   },
   lugarItem: {
     flexDirection: "row",
