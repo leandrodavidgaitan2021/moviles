@@ -51,7 +51,7 @@ export default function LoginScreen() {
     },
   });
 
-  const handleLogin = (data: LoginFormData) => {
+const handleLogin = (data: LoginFormData) => {
     if (data.email === emailMock && data.password === passwordMock) {
       login(data.email);
 
