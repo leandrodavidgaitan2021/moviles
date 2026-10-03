@@ -1,23 +1,43 @@
 // src/components/AccesoRestringido.tsx
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useTheme } from "../hooks/useTheme"; // <-- Importamos el hook del tema global
 
 interface AccesoRestringidoProps {
   subtitulo: string;
 }
 
-export default function AccesoRestringido({ subtitulo }: AccesoRestringidoProps) {
+export default function AccesoRestringido({
+  subtitulo,
+}: AccesoRestringidoProps) {
   const router = useRouter();
+  const pathname = usePathname(); // <-- Obtenemos la ruta actual (ej. "/(tabs)/recorrido")
+  const { colors } = useTheme(); // <-- Extraemos los colores del tema actual
+
+  const handleIrAlLogin = () => {
+    router.push({
+      pathname: "/login",
+      params: { redirect: pathname }, // <-- Enviamos la ruta de retorno
+    });
+  };
 
   return (
-    <View style={styles.container}>
-      <Ionicons name="lock-closed-outline" size={64} color="#bdc3c7" />
-      <Text style={styles.title}>Acceso restringido</Text>
-      <Text style={styles.subtitle}>{subtitulo}</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Ionicons
+        name="lock-closed-outline"
+        size={64}
+        color={colors.textSecondary}
+      />
+      <Text style={[styles.title, { color: colors.text }]}>
+        Acceso restringido
+      </Text>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+        {subtitulo}
+      </Text>
       <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.push("/login")}
+        style={[styles.button, { backgroundColor: colors.primary }]}
+        onPress={handleIrAlLogin} // <-- Usamos la función con los parámetros
       >
         <Text style={styles.buttonText}>Ir a Iniciar Sesión</Text>
       </TouchableOpacity>
@@ -30,25 +50,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f8f9fa",
     padding: 20,
   },
   title: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#333",
     marginTop: 15,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 14,
-    color: "#666",
     marginTop: 5,
     textAlign: "center",
     marginBottom: 20,
   },
   button: {
-    backgroundColor: "#27ae60",
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,

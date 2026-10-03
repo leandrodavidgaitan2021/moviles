@@ -1,8 +1,6 @@
 // src/app/(tabs)/recorrido.tsx
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -12,6 +10,8 @@ import {
   View,
 } from "react-native";
 import AccesoRestringido from "../../components/AccesoRestringido";
+import { useAuth } from "../../hooks/useAuth"; // <-- Importamos el hook de autenticación global
+import { useTheme } from "../../hooks/useTheme"; // <-- Importamos el hook del tema global
 
 const lugaresVisitados = [
   {
@@ -30,70 +30,71 @@ const lugaresVisitados = [
 
 export default function RecorridoScreen() {
   const router = useRouter();
-  const [estaLogeado, setEstaLogeado] = useState<boolean>(false);
-  const [cargando, setCargando] = useState<boolean>(true);
-
-  useEffect(() => {
-    async function verificarSesion() {
-      try {
-        const token = await AsyncStorage.getItem("@user_session");
-        if (token) {
-          setEstaLogeado(true);
-        }
-      } catch (error) {
-        console.error("Error al verificar la sesión:", error);
-      } finally {
-        setCargando(false);
-      }
-    }
-    verificarSesion();
-  }, []);
+  const { colors, theme } = useTheme();
+  const { isAuthenticated, cargando } = useAuth(); // <-- Usamos el hook useAuth para la sesión y el estado de carga
 
   if (cargando) {
     return (
-      <View style={styles.centrado}>
-        <ActivityIndicator size="large" color="#27ae60" />
+      <View style={[styles.centrado, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
-  if (!estaLogeado) {
+  if (!isAuthenticated) {
     return (
       <AccesoRestringido subtitulo="Inicia sesión para ver tu bitácora de viaje, progreso y lugares visitados en Colón." />
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Cabecera de la sección */}
       <View style={styles.header}>
-        <Text style={styles.title}>Mi Recorrido</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.text }]}>Mi Recorrido</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Bitácora de lugares descubiertos en Colón
         </Text>
       </View>
 
       {/* Tarjeta de Progreso / Resumen */}
-      <View style={styles.progressCard}>
-        <Ionicons name="trophy-outline" size={32} color="#27ae60" />
+      <View
+        style={[
+          styles.progressCard,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            borderWidth: theme === "dark" ? 1 : 0,
+          },
+        ]}
+      >
+        <Ionicons name="trophy-outline" size={32} color={colors.primary} />
         <View style={styles.progressInfo}>
-          <Text style={styles.progressTitle}>Progreso de viaje</Text>
-          <Text style={styles.progressText}>
+          <Text style={[styles.progressTitle, { color: colors.text }]}>
+            Progreso de viaje
+          </Text>
+          <Text style={[styles.progressText, { color: colors.textSecondary }]}>
             Has visitado {lugaresVisitados.length} de 15 puntos turísticos
           </Text>
         </View>
       </View>
 
       {/* Lista de lugares visitados / check-ins */}
-      <Text style={styles.sectionTitle}>Lugares visitados (Check-in)</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        Lugares visitados (Check-in)
+      </Text>
 
       {lugaresVisitados.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="compass-outline" size={48} color="#bdc3c7" />
-          <Text style={styles.emptyText}>
+          <Ionicons
+            name="compass-outline"
+            size={48}
+            color={colors.textSecondary}
+          />
+          <Text style={[styles.emptyText, { color: colors.text }]}>
             Aún no has registrado ningún lugar.
           </Text>
-          <Text style={styles.emptySubtext}>
+          <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
             Usa el botón de QR en el inicio para escanear tótems en la ciudad.
           </Text>
         </View>
@@ -103,19 +104,38 @@ export default function RecorridoScreen() {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.itemCard}
-              onPress={() => router.push(`/lugar/${item.id}`)}
+              style={[
+                styles.itemCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderWidth: theme === "dark" ? 1 : 0,
+                },
+              ]}
+              //onPress={() => router.push(`/lugar/${item.id}`)}
             >
               <View style={styles.itemIconContainer}>
-                <Ionicons name="checkmark-circle" size={24} color="#27ae60" />
+                <Ionicons
+                  name="checkmark-circle"
+                  size={24}
+                  color={colors.primary}
+                />
               </View>
               <View style={styles.itemDetails}>
-                <Text style={styles.itemName}>{item.nombre}</Text>
-                <Text style={styles.itemDate}>
+                <Text style={[styles.itemName, { color: colors.text }]}>
+                  {item.nombre}
+                </Text>
+                <Text
+                  style={[styles.itemDate, { color: colors.textSecondary }]}
+                >
                   Registrado el {item.fechaCheckin}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#bdc3c7" />
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={colors.textSecondary}
+              />
             </TouchableOpacity>
           )}
         />
@@ -127,7 +147,6 @@ export default function RecorridoScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
     paddingHorizontal: 20,
     paddingTop: 50,
   },
@@ -142,16 +161,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#222",
   },
   subtitle: {
     fontSize: 14,
-    color: "#666",
     marginTop: 2,
   },
   progressCard: {
     flexDirection: "row",
-    backgroundColor: "#fff",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
@@ -167,23 +183,19 @@ const styles = StyleSheet.create({
   progressTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#333",
   },
   progressText: {
     fontSize: 13,
-    color: "#7f8c8d",
     marginTop: 2,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#333",
     marginBottom: 10,
   },
   itemCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
     padding: 14,
     borderRadius: 10,
     marginBottom: 10,
@@ -201,11 +213,9 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#2c3e50",
   },
   itemDate: {
     fontSize: 12,
-    color: "#95a5a6",
     marginTop: 2,
   },
   emptyContainer: {
@@ -217,12 +227,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#7f8c8d",
     marginTop: 10,
   },
   emptySubtext: {
     fontSize: 13,
-    color: "#95a5a6",
     textAlign: "center",
     paddingHorizontal: 30,
     marginTop: 5,

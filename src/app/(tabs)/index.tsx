@@ -14,6 +14,7 @@ import {
 import FiltrosYBusqueda from "../../components/FiltrosYBusqueda";
 import MapaLugares from "../../components/MapaLugares";
 import SimuladorUbicacion from "../../components/SimuladorUbicacion";
+import { useTheme } from "../../hooks/useTheme"; // <-- Importamos el hook del tema global
 import { obtenerLugares } from "../../servicios/lugares";
 import { Lugar } from "../../tipos";
 
@@ -38,6 +39,7 @@ function calcularDistancia(
 
 export default function PantallaInicio() {
   const router = useRouter();
+  const { colors, theme } = useTheme(); // <-- Extraemos los colores y el tema actual
   const [lugares, setLugares] = useState<Lugar[]>([]);
   const [cargando, setCargando] = useState<boolean>(true);
   const [ubicacionActual, setUbicacionActual] = useState<{
@@ -171,23 +173,38 @@ export default function PantallaInicio() {
 
   if (cargando) {
     return (
-      <View style={styles.centrado}>
-        <ActivityIndicator size="large" color="#2E8B57" />
-        <Text style={styles.textoCargando}>Cargando Guía Turística...</Text>
+      <View style={[styles.centrado, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.textoCargando, { color: colors.textSecondary }]}>
+          Cargando Guía Turística...
+        </Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Cabecera */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Colon - Secretaria de Turismo</Text>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: colors.card,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
+        <Text style={[styles.headerTitle, { color: colors.text }]}>
+          Colon - Secretaria de Turismo
+        </Text>
         <TouchableOpacity
-          style={styles.qrButton}
+          style={[
+            styles.qrButton,
+            { backgroundColor: theme === "dark" ? "#2c2c2c" : "#f0f0f0" },
+          ]}
           onPress={() => router.push("/escanear")}
         >
-          <Ionicons name="qr-code-outline" size={24} color="#333" />
+          <Ionicons name="qr-code-outline" size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -201,11 +218,17 @@ export default function PantallaInicio() {
 
       {/* Botón desplegable para simular ubicación */}
       <TouchableOpacity
-        style={styles.toggleSimulador}
+        style={[
+          styles.toggleSimulador,
+          {
+            backgroundColor: theme === "dark" ? "#1a2e22" : "#e8f8f0",
+            borderBottomColor: theme === "dark" ? "#275c3e" : "#d4efdf",
+          },
+        ]}
         onPress={() => setMostrarSimulador(!mostrarSimulador)}
       >
-        <Ionicons name="options-outline" size={18} color="#27ae60" />
-        <Text style={styles.toggleSimuladorText}>
+        <Ionicons name="options-outline" size={18} color={colors.primary} />
+        <Text style={[styles.toggleSimuladorText, { color: colors.primary }]}>
           {mostrarSimulador
             ? "Ocultar simulador de ubicación"
             : "Simular / Cambiar ubicación en Colón"}
@@ -233,24 +256,32 @@ export default function PantallaInicio() {
       {/* Listado de resultados y botón de ordenar por distancia */}
       <View style={styles.cercaContainer}>
         <View style={styles.listHeaderRow}>
-          <Text style={styles.cercaTitle}>
+          <Text style={[styles.cercaTitle, { color: colors.text }]}>
             Lugares ({lugaresFiltrados.length})
           </Text>
           <TouchableOpacity
             style={[
               styles.botonOrdenar,
-              ordenarPorCercania && styles.botonOrdenarActivo,
+              {
+                backgroundColor: theme === "dark" ? "#1a2e22" : "#e8f8f0",
+                borderColor: theme === "dark" ? "#275c3e" : "#c6e7d6",
+              },
+              ordenarPorCercania && {
+                backgroundColor: colors.primary,
+                borderColor: colors.primary,
+              },
             ]}
             onPress={() => setOrdenarPorCercania(!ordenarPorCercania)}
           >
             <Ionicons
               name="navigate-outline"
               size={14}
-              color={ordenarPorCercania ? "#fff" : "#27ae60"}
+              color={ordenarPorCercania ? "#fff" : colors.primary}
             />
             <Text
               style={[
                 styles.botonOrdenarText,
+                { color: colors.primary },
                 ordenarPorCercania && styles.botonOrdenarTextActivo,
               ]}
             >
@@ -278,16 +309,32 @@ export default function PantallaInicio() {
 
             return (
               <TouchableOpacity
-                style={styles.lugarItem}
+                style={[
+                  styles.lugarItem,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    borderWidth: theme === "dark" ? 1 : 0,
+                  },
+                ]}
                 onPress={() => router.push(`/lugar/${item.id}`)}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.lugarNombre}>{item.nombre}</Text>
-                  <Text style={styles.lugarDesc} numberOfLines={1}>
+                  <Text style={[styles.lugarNombre, { color: colors.text }]}>
+                    {item.nombre}
+                  </Text>
+                  <Text
+                    style={[styles.lugarDesc, { color: colors.textSecondary }]}
+                    numberOfLines={1}
+                  >
                     {item.descripcionCorta}
                   </Text>
                 </View>
-                <Text style={styles.lugarDistancia}>{textoDistancia}</Text>
+                <Text
+                  style={[styles.lugarDistancia, { color: colors.primary }]}
+                >
+                  {textoDistancia}
+                </Text>
               </TouchableOpacity>
             );
           }}
@@ -298,9 +345,9 @@ export default function PantallaInicio() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f9fa" },
+  container: { flex: 1 },
   centrado: { flex: 1, justifyContent: "center", alignItems: "center" },
-  textoCargando: { marginTop: 10, fontSize: 16, color: "#666" },
+  textoCargando: { marginTop: 10, fontSize: 16 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -308,22 +355,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 50,
     paddingBottom: 10,
-    backgroundColor: "#fff",
+    borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 18, fontWeight: "bold", color: "#222" },
-  qrButton: { padding: 6, backgroundColor: "#f0f0f0", borderRadius: 8 },
+  headerTitle: { fontSize: 18, fontWeight: "bold" },
+  qrButton: { padding: 6, borderRadius: 8 },
   toggleSimulador: {
-    backgroundColor: "#e8f8f0",
     paddingVertical: 8,
     paddingHorizontal: 15,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "#d4efdf",
   },
   toggleSimuladorText: {
-    color: "#27ae60",
     fontWeight: "bold",
     fontSize: 12,
     marginLeft: 6,
@@ -338,26 +382,18 @@ const styles = StyleSheet.create({
   cercaTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#333",
   },
   botonOrdenar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#e8f8f0",
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#c6e7d6",
     gap: 4,
-  },
-  botonOrdenarActivo: {
-    backgroundColor: "#27ae60",
-    borderColor: "#27ae60",
   },
   botonOrdenarText: {
     fontSize: 12,
-    color: "#27ae60",
     fontWeight: "600",
   },
   botonOrdenarTextActivo: {
@@ -367,7 +403,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#fff",
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
@@ -376,7 +411,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-  lugarNombre: { fontSize: 15, fontWeight: "600", color: "#2c3e50" },
-  lugarDesc: { fontSize: 12, color: "#7f8c8d", maxWidth: 220, marginTop: 2 },
-  lugarDistancia: { fontSize: 13, fontWeight: "bold", color: "#27ae60" },
+  lugarNombre: { fontSize: 15, fontWeight: "600" },
+  lugarDesc: { fontSize: 12, maxWidth: 220, marginTop: 2 },
+  lugarDistancia: { fontSize: 13, fontWeight: "bold" },
 });

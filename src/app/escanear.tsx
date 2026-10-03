@@ -4,11 +4,13 @@ import { Camera, CameraView } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useTheme } from "../hooks/useTheme"; // <-- Importamos el hook del tema global
 
 export default function EscanearScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState<boolean>(false);
   const router = useRouter();
+  const { colors, theme } = useTheme(); // <-- Extraemos los colores del tema
 
   useEffect(() => {
     async function getCameraPermissions() {
@@ -29,18 +31,25 @@ export default function EscanearScreen() {
 
   if (hasPermission === null) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.text}>Solicitando permiso de cámara...</Text>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.text, { color: colors.text }]}>
+          Solicitando permiso de cámara...
+        </Text>
       </View>
     );
   }
 
   if (hasPermission === false) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Ionicons name="alert-circle-outline" size={48} color="#e74c3c" />
-        <Text style={styles.text}>No hay acceso a la cámara.</Text>
-        <TouchableOpacity style={styles.button} onPress={() => router.back()}>
+        <Text style={[styles.text, { color: colors.text }]}>
+          No hay acceso a la cámara.
+        </Text>
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: colors.primary }]}
+          onPress={() => router.back()}
+        >
           <Text style={styles.buttonText}>Volver</Text>
         </TouchableOpacity>
       </View>
@@ -82,9 +91,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
   },
   text: {
-    color: "#fff",
     fontSize: 16,
     marginBottom: 20,
+    textAlign: "center",
   },
   closeButton: {
     position: "absolute",
@@ -109,7 +118,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   button: {
-    backgroundColor: "#27ae60",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 8,

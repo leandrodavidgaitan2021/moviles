@@ -1,7 +1,5 @@
 // src/app/(tabs)/perfil.tsx
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -10,71 +8,57 @@ import {
   View,
 } from "react-native";
 import AccesoRestringido from "../../components/AccesoRestringido";
+import { useAuth } from "../../hooks/useAuth"; // <-- Importamos el hook de autenticación global
+import { useTheme } from "../../hooks/useTheme"; // <-- Importamos el hook del tema global
 
 export default function PerfilScreen() {
-  const [estaLogeado, setEstaLogeado] = useState<boolean>(false);
-  const [cargando, setCargando] = useState<boolean>(true);
-  const [usuarioEmail, setUsuarioEmail] = useState<string>("");
-
-  useEffect(() => {
-    async function verificarSesion() {
-      try {
-        const token = await AsyncStorage.getItem("@user_session");
-        if (token) {
-          setEstaLogeado(true);
-          setUsuarioEmail(token);
-        }
-      } catch (error) {
-        console.error("Error al verificar la sesión:", error);
-      } finally {
-        setCargando(false);
-      }
-    }
-    verificarSesion();
-  }, []);
-
-  const handleCerrarSesion = async () => {
-    try {
-      await AsyncStorage.removeItem("@user_session");
-      setEstaLogeado(false);
-      setUsuarioEmail("");
-    } catch (error) {
-      console.error("Error al cerrar sesión:", error);
-    }
-  };
+  const { colors, theme } = useTheme();
+  const { user, isAuthenticated, cargando, logout } = useAuth(); // <-- Consumimos el contexto global
 
   if (cargando) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#27ae60" />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
-  if (!estaLogeado) {
+  if (!isAuthenticated) {
     return (
       <AccesoRestringido subtitulo="Inicia sesión para ver tu perfil, preferencias y lugares guardados offline." />
     );
   }
 
   return (
-    <View style={styles.containerLogeado}>
-      <Ionicons name="person-circle-outline" size={80} color="#27ae60" />
-      <Text style={styles.title}>Mi Perfil</Text>
-      <Text style={styles.emailText}>{usuarioEmail}</Text>
+    <View
+      style={[styles.containerLogeado, { backgroundColor: colors.background }]}
+    >
+      <Ionicons name="person-circle-outline" size={80} color={colors.primary} />
+      <Text style={[styles.title, { color: colors.text }]}>Mi Perfil</Text>
+      <Text style={[styles.emailText, { color: colors.textSecondary }]}>
+        {user}
+      </Text>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Tus datos offline</Text>
-        <Text style={styles.cardDesc}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            borderWidth: theme === "dark" ? 1 : 0,
+          },
+        ]}
+      >
+        <Text style={[styles.cardTitle, { color: colors.text }]}>
+          Tus datos offline
+        </Text>
+        <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
           Los check-ins de tu recorrido se sincronizarán localmente en este
           dispositivo.
         </Text>
       </View>
 
-      <TouchableOpacity
-        style={styles.logoutButton}
-        onPress={handleCerrarSesion}
-      >
+      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
         <Text style={styles.logoutText}>Cerrar Sesión</Text>
       </TouchableOpacity>
     </View>
@@ -86,30 +70,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f8f9fa",
     padding: 20,
   },
   containerLogeado: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f8f9fa",
     padding: 20,
   },
   title: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#333",
     marginTop: 15,
     textAlign: "center",
   },
   emailText: {
     fontSize: 15,
-    color: "#7f8c8d",
     marginBottom: 20,
   },
   card: {
-    backgroundColor: "#fff",
     width: "100%",
     padding: 16,
     borderRadius: 10,
@@ -122,12 +101,10 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#2c3e50",
     marginBottom: 5,
   },
   cardDesc: {
     fontSize: 13,
-    color: "#7f8c8d",
   },
   logoutButton: {
     backgroundColor: "#e74c3c",

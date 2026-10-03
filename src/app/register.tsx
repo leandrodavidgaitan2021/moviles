@@ -1,7 +1,6 @@
 // src/app/register.tsx
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -14,6 +13,7 @@ import {
   View,
 } from "react-native";
 import * as z from "zod";
+import { useAuth } from "../hooks/useAuth"; // <-- Importamos el hook del contexto
 
 // 1. Esquema de validación con Zod para el registro
 const registerSchema = z.object({
@@ -29,6 +29,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { login } = useAuth(); // <-- Extraemos la función login del contexto global
 
   // 2. Configuración de react-hook-form
   const {
@@ -45,15 +46,11 @@ export default function RegisterScreen() {
   });
 
   // 3. Función al enviar el formulario con éxito
-  const handleRegister = async (data: RegisterFormData) => {
-    try {
-      // Guardamos la sesión del nuevo usuario simulado
-      await AsyncStorage.setItem("@user_session", data.email);
-      alert(`¡Registro exitoso! Bienvenido, ${data.nombre}`);
-      router.replace("/(tabs)/perfil");
-    } catch (error) {
-      console.error("Error al registrar el usuario", error);
-    }
+  const handleRegister = (data: RegisterFormData) => {
+    // Guardamos la sesión directamente en el Contexto Global (sin AsyncStorage)
+    login(data.email);
+    alert(`¡Registro exitoso! Bienvenido, ${data.nombre}`);
+    router.replace("/(tabs)/perfil");
   };
 
   return (

@@ -1,8 +1,7 @@
 // src/app/login.tsx
 import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Controller, useForm } from "react-hook-form";
 import {
   KeyboardAvoidingView,
@@ -14,8 +13,9 @@ import {
   View,
 } from "react-native";
 import * as z from "zod";
+import { useAuth } from "../hooks/useAuth";
+import { useTheme } from "../hooks/useTheme"; // <-- Mantenemos el hook de tema para los colores automáticos
 
-// 1. Esquema de validación actualizado con mínimo de 8 caracteres
 const loginSchema = z.object({
   email: z
     .string()
@@ -31,13 +31,14 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginScreen() {
-  // Datos mockeados actualizados a 8 caracteres o más
   const emailMock = "turista@colon.com";
-  const passwordMock = "12345678"; // <-- Modificado aquí (8 caracteres)
+  const passwordMock = "12345678A";
 
   const router = useRouter();
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>(); // <-- Capturamos la ruta de origen si existe
+  const { login } = useAuth();
+  const { colors } = useTheme(); // <-- Solo extraemos los colores según el tema actual o del dispositivo
 
-  // 2. Configuramos react-hook-form con el resolver de zod
   const {
     control,
     handleSubmit,
@@ -50,44 +51,56 @@ export default function LoginScreen() {
     },
   });
 
-  // 3. Función que se ejecuta si la validación pasa exitosamente
-  const handleLogin = async (data: LoginFormData) => {
+  const handleLogin = (data: LoginFormData) => {
     if (data.email === emailMock && data.password === passwordMock) {
-      try {
-        await AsyncStorage.setItem("@user_session", data.email);
+      login(data.email);
+
+      // Si nos pasaron una ruta de redirección, volvemos a ella; si no, vamos a perfil o tabs
+      if (redirect) {
+        router.replace(redirect as any);
+      } else {
         router.replace("/(tabs)/perfil");
-      } catch (error) {
-        console.error("Error al guardar la sesión", error);
       }
     } else {
-      alert("Credenciales incorrectas. Prueba con turista@colon.com y 123456");
+      alert(
+        "Credenciales incorrectas. Prueba con turista@colon.com y 12345678A",
+      );
     }
   };
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
     >
       <View style={styles.formContainer}>
         <View style={styles.iconContainer}>
-          <Ionicons name="compass" size={64} color="#27ae60" />
+          <Ionicons name="compass" size={64} color={colors.primary} />
         </View>
 
-        <Text style={styles.title}>Turismo Colón</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.text }]}>
+          Turismo Colón
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Inicia sesión para guardar tu recorrido
         </Text>
 
-        {/* Input de Correo con Controller */}
+        {/* Input de Correo */}
         <Controller
           control={control}
           name="email"
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.card,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
               placeholder="Correo electrónico"
-              placeholderTextColor="#aaa"
+              placeholderTextColor={colors.textSecondary}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -101,15 +114,22 @@ export default function LoginScreen() {
           <Text style={styles.errorText}>{errors.email.message}</Text>
         )}
 
-        {/* Input de Contraseña con Controller */}
+        {/* Input de Contraseña */}
         <Controller
           control={control}
           name="password"
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: colors.card,
+                  color: colors.text,
+                  borderColor: colors.border,
+                },
+              ]}
               placeholder="Contraseña"
-              placeholderTextColor="#aaa"
+              placeholderTextColor={colors.textSecondary}
               secureTextEntry
               onBlur={onBlur}
               value={value}
@@ -121,9 +141,9 @@ export default function LoginScreen() {
           <Text style={styles.errorText}>{errors.password.message}</Text>
         )}
 
-        {/* Botón de envío vinculado a handleSubmit */}
+        {/* Botón de Ingreso */}
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, { backgroundColor: colors.primary }]}
           onPress={handleSubmit(handleLogin)}
         >
           <Text style={styles.buttonText}>Ingresar</Text>
@@ -133,7 +153,7 @@ export default function LoginScreen() {
           style={styles.guestButton}
           onPress={() => router.push("/register")}
         >
-          <Text style={styles.guestButtonText}>
+          <Text style={[styles.guestButtonText, { color: colors.primary }]}>
             ¿No tienes cuenta? Regístrate
           </Text>
         </TouchableOpacity>
@@ -142,7 +162,11 @@ export default function LoginScreen() {
           style={styles.guestButton}
           onPress={() => router.replace("/(tabs)")}
         >
-          <Text style={styles.guestButtonText}>Continuar como invitado</Text>
+          <Text
+            style={[styles.guestButtonText, { color: colors.textSecondary }]}
+          >
+            Continuar como invitado
+          </Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -152,7 +176,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
     justifyContent: "center",
   },
   formContainer: {
@@ -168,26 +191,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#2c3e50",
     textAlign: "center",
     marginBottom: 5,
   },
   subtitle: {
     fontSize: 14,
-    color: "#7f8c8d",
     textAlign: "center",
     marginBottom: 30,
   },
   input: {
-    backgroundColor: "#fff",
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 10,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
     marginBottom: 5,
-    color: "#333",
   },
   errorText: {
     color: "#e74c3c",
@@ -196,7 +214,6 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   button: {
-    backgroundColor: "#27ae60",
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: "center",
@@ -217,7 +234,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   guestButtonText: {
-    color: "#7f8c8d",
     fontSize: 14,
     fontWeight: "600",
   },

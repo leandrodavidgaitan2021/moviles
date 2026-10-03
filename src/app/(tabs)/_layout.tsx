@@ -1,14 +1,21 @@
 // src/app/(tabs)/_layout.tsx
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { useTheme } from "../../hooks/useTheme"; // <-- Importamos el hook del tema global
 
 export default function TabLayout() {
+  const { colors, theme } = useTheme(); // <-- Extraemos los colores y el tema actual
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#27ae60",
-        tabBarInactiveTintColor: "#888",
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+        },
       }}
     >
       <Tabs.Screen

@@ -1,6 +1,7 @@
 // src/app/(tabs)/agenda.tsx
 import { Ionicons } from "@expo/vector-icons";
 import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useTheme } from "../../hooks/useTheme"; // <-- Importamos el hook del tema global
 
 const eventosLocales = [
   {
@@ -30,12 +31,16 @@ const eventosLocales = [
 ];
 
 export default function AgendaScreen() {
+  const { colors, theme } = useTheme(); // <-- Extraemos los colores y el tema actual
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Cabecera */}
       <View style={styles.header}>
-        <Text style={styles.title}>Agenda de Eventos</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: colors.text }]}>
+          Agenda de Eventos
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Próximas fiestas y actividades culturales en Colón
         </Text>
       </View>
@@ -46,17 +51,44 @@ export default function AgendaScreen() {
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <View style={styles.eventCard}>
+          <View
+            style={[
+              styles.eventCard,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderWidth: theme === "dark" ? 1 : 0,
+              },
+            ]}
+          >
             <View style={styles.eventHeader}>
-              <Ionicons name="calendar-outline" size={20} color="#27ae60" />
-              <Text style={styles.eventFecha}>{item.fecha}</Text>
+              <Ionicons
+                name="calendar-outline"
+                size={20}
+                color={colors.primary}
+              />
+              <Text style={[styles.eventFecha, { color: colors.primary }]}>
+                {item.fecha}
+              </Text>
             </View>
-            <Text style={styles.eventTitulo}>{item.titulo}</Text>
+            <Text style={[styles.eventTitulo, { color: colors.text }]}>
+              {item.titulo}
+            </Text>
             <View style={styles.eventLocationRow}>
-              <Ionicons name="location-outline" size={14} color="#7f8c8d" />
-              <Text style={styles.eventLugar}>{item.lugar}</Text>
+              <Ionicons
+                name="location-outline"
+                size={14}
+                color={colors.textSecondary}
+              />
+              <Text
+                style={[styles.eventLugar, { color: colors.textSecondary }]}
+              >
+                {item.lugar}
+              </Text>
             </View>
-            <Text style={styles.eventDesc}>{item.descripcion}</Text>
+            <Text style={[styles.eventDesc, { color: colors.textSecondary }]}>
+              {item.descripcion}
+            </Text>
           </View>
         )}
       />
@@ -67,7 +99,6 @@ export default function AgendaScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
     paddingHorizontal: 20,
     paddingTop: 50,
   },
@@ -77,15 +108,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#222",
   },
   subtitle: {
     fontSize: 14,
-    color: "#666",
     marginTop: 2,
   },
   eventCard: {
-    backgroundColor: "#fff",
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
@@ -103,12 +131,10 @@ const styles = StyleSheet.create({
   eventFecha: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#27ae60",
   },
   eventTitulo: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#2c3e50",
     marginBottom: 6,
   },
   eventLocationRow: {
@@ -119,12 +145,10 @@ const styles = StyleSheet.create({
   },
   eventLugar: {
     fontSize: 13,
-    color: "#7f8c8d",
     fontWeight: "500",
   },
   eventDesc: {
     fontSize: 13,
-    color: "#555",
     lineHeight: 18,
   },
 });

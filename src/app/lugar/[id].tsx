@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useTheme } from "../../hooks/useTheme"; // <-- Importamos el hook del tema global
 import { cambiarFavorito, esFavorito } from "../../servicios/favoritos";
 import { obtenerLugares } from "../../servicios/lugares";
 import { Lugar } from "../../tipos";
@@ -30,6 +31,7 @@ const DIAS_SEMANA = [
 export default function DetalleLugarScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { colors, theme } = useTheme(); // <-- Extraemos los colores y el tema actual
 
   const [lugar, setLugar] = useState<Lugar | null>(null);
   const [cargando, setCargando] = useState<boolean>(true);
@@ -73,22 +75,24 @@ export default function DetalleLugarScreen() {
 
   if (cargando) {
     return (
-      <View style={styles.centrado}>
-        <ActivityIndicator size="large" color="#27ae60" />
-        <Text style={styles.textoCargando}>Cargando detalle...</Text>
+      <View style={[styles.centrado, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.textoCargando, { color: colors.textSecondary }]}>
+          Cargando detalle...
+        </Text>
       </View>
     );
   }
 
   if (!lugar) {
     return (
-      <View style={styles.centrado}>
+      <View style={[styles.centrado, { backgroundColor: colors.background }]}>
         <Ionicons name="alert-circle-outline" size={48} color="#e74c3c" />
-        <Text style={styles.errorText}>
+        <Text style={[styles.errorText, { color: colors.text }]}>
           No se encontró el lugar solicitado.
         </Text>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.primary }]}
           onPress={() => router.back()}
         >
           <Text style={styles.backButtonText}>Volver</Text>
@@ -98,9 +102,22 @@ export default function DetalleLugarScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} bounces={false}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      bounces={false}
+    >
       {/* Sección de Imágenes / Carrusel visual */}
-      <View style={styles.imagenContainer}>
+      <View
+        style={[
+          styles.imagenContainer,
+          {
+            backgroundColor:
+              theme === "dark"
+                ? colors.card
+                : styles.imagenContainer.backgroundColor,
+          },
+        ]}
+      >
         {lugar.imagenes && lugar.imagenes.length > 0 ? (
           <ScrollView
             horizontal
@@ -116,9 +133,28 @@ export default function DetalleLugarScreen() {
             ))}
           </ScrollView>
         ) : (
-          <View style={styles.imagenPlaceholder}>
-            <Ionicons name="image-outline" size={48} color="#bdc3c7" />
-            <Text style={styles.imagenPlaceholderText}>
+          <View
+            style={[
+              styles.imagenPlaceholder,
+              {
+                backgroundColor:
+                  theme === "dark"
+                    ? "#1e1e1e"
+                    : styles.imagenPlaceholder.backgroundColor,
+              },
+            ]}
+          >
+            <Ionicons
+              name="image-outline"
+              size={48}
+              color={colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.imagenPlaceholderText,
+                { color: colors.textSecondary },
+              ]}
+            >
               Sin imágenes disponibles
             </Text>
           </View>
@@ -126,22 +162,30 @@ export default function DetalleLugarScreen() {
 
         {/* Botón flotante para volver */}
         <TouchableOpacity
-          style={styles.floatingBackButton}
+          style={[
+            styles.floatingBackButton,
+            {
+              backgroundColor: colors.card,
+              shadowColor: theme === "dark" ? "#000" : "#000",
+            },
+          ]}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={22} color="#333" />
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.categoria}>
+        <Text style={[styles.categoria, { color: colors.primary }]}>
           {lugar.categoriaId
             ? lugar.categoriaId.toUpperCase().replace("CAT-", "")
             : "TURISMO"}
         </Text>
 
         <View style={styles.filaTitulo}>
-          <Text style={styles.title}>{lugar.nombre}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            {lugar.nombre}
+          </Text>
           <TouchableOpacity
             onPress={cambiarEstrella}
             accessibilityLabel={
@@ -157,21 +201,53 @@ export default function DetalleLugarScreen() {
         </View>
 
         <View style={styles.coordenadasContainer}>
-          <Ionicons name="location-outline" size={16} color="#7f8c8d" />
-          <Text style={styles.coordenadasText}>{lugar.direccion}</Text>
+          <Ionicons
+            name="location-outline"
+            size={16}
+            color={colors.textSecondary}
+          />
+          <Text
+            style={[styles.coordenadasText, { color: colors.textSecondary }]}
+          >
+            {lugar.direccion}
+          </Text>
         </View>
 
         {/* Información adicional: Precio, Accesibilidad, Teléfono */}
         <View style={styles.infoRow}>
-          <View style={styles.infoBadge}>
-            <Ionicons name="ticket-outline" size={18} color="#27ae60" />
-            <Text style={styles.infoBadgeText}>
+          <View
+            style={[
+              styles.infoBadge,
+              {
+                backgroundColor:
+                  theme === "dark"
+                    ? colors.card
+                    : styles.infoBadge.backgroundColor,
+                borderColor: colors.border,
+                borderWidth: theme === "dark" ? 1 : 0,
+              },
+            ]}
+          >
+            <Ionicons name="ticket-outline" size={18} color={colors.primary} />
+            <Text style={[styles.infoBadgeText, { color: colors.text }]}>
               {lugar.precioEntrada === 0
                 ? "Entrada Gratuita"
                 : `$${lugar.precioEntrada}`}
             </Text>
           </View>
-          <View style={styles.infoBadge}>
+          <View
+            style={[
+              styles.infoBadge,
+              {
+                backgroundColor:
+                  theme === "dark"
+                    ? colors.card
+                    : styles.infoBadge.backgroundColor,
+                borderColor: colors.border,
+                borderWidth: theme === "dark" ? 1 : 0,
+              },
+            ]}
+          >
             <Ionicons
               name={
                 lugar.accesible
@@ -179,9 +255,9 @@ export default function DetalleLugarScreen() {
                   : "close-circle-outline"
               }
               size={18}
-              color={lugar.accesible ? "#27ae60" : "#95a5a6"}
+              color={lugar.accesible ? colors.primary : colors.textSecondary}
             />
-            <Text style={styles.infoBadgeText}>
+            <Text style={[styles.infoBadgeText, { color: colors.text }]}>
               {lugar.accesible ? "Accesible" : "No accesible"}
             </Text>
           </View>
@@ -190,14 +266,24 @@ export default function DetalleLugarScreen() {
         {/* Contacto (Teléfono / Sitio Web) */}
         {(lugar.telefono || lugar.sitioWeb) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Contacto</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Contacto
+            </Text>
             {lugar.telefono && (
               <TouchableOpacity
                 style={styles.contactoRow}
                 onPress={() => Linking.openURL(`tel:${lugar.telefono}`)}
               >
-                <Ionicons name="call-outline" size={18} color="#27ae60" />
-                <Text style={styles.contactoLinkText}>{lugar.telefono}</Text>
+                <Ionicons
+                  name="call-outline"
+                  size={18}
+                  color={colors.primary}
+                />
+                <Text
+                  style={[styles.contactoLinkText, { color: colors.primary }]}
+                >
+                  {lugar.telefono}
+                </Text>
               </TouchableOpacity>
             )}
             {lugar.sitioWeb && (
@@ -217,14 +303,26 @@ export default function DetalleLugarScreen() {
         {/* Horarios de Atención */}
         {lugar.horarios && lugar.horarios.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Horarios de Apertura</Text>
-            <View style={styles.horariosContainer}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Horarios de Apertura
+            </Text>
+            <View
+              style={[
+                styles.horariosContainer,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
               {lugar.horarios.map((h, index) => (
                 <View key={index} style={styles.horarioRow}>
-                  <Text style={styles.horarioDia}>
+                  <Text
+                    style={[styles.horarioDia, { color: colors.textSecondary }]}
+                  >
                     {DIAS_SEMANA[h.dia] ?? "Día"}
                   </Text>
-                  <Text style={styles.horarioHora}>
+                  <Text style={[styles.horarioHora, { color: colors.text }]}>
                     {h.abre} a {h.cierra} hs
                   </Text>
                 </View>
@@ -235,13 +333,17 @@ export default function DetalleLugarScreen() {
 
         {/* Descripción Detallada */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Acerca del lugar</Text>
-          <Text style={styles.description}>{lugar.descripcion}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Acerca del lugar
+          </Text>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
+            {lugar.descripcion}
+          </Text>
         </View>
 
         {/* Botón de Check-in */}
         <TouchableOpacity
-          style={styles.checkinButton}
+          style={[styles.checkinButton, { backgroundColor: colors.primary }]}
           onPress={() =>
             alert(`¡Check-in realizado con éxito en ${lugar.nombre}!`)
           }
@@ -255,15 +357,15 @@ export default function DetalleLugarScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1 },
   centrado: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
-  textoCargando: { marginTop: 10, fontSize: 16, color: "#666" },
-  errorText: { fontSize: 16, color: "#333", marginTop: 10, marginBottom: 20 },
+  textoCargando: { marginTop: 10, fontSize: 16 },
+  errorText: { fontSize: 16, marginTop: 10, marginBottom: 20 },
   imagenContainer: { width: "100%", height: 250, backgroundColor: "#f0f0f0" },
   imagenLugar: { width: 400, height: 250, resizeMode: "cover" },
   imagenPlaceholder: {
@@ -273,13 +375,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#ecf0f1",
   },
-  imagenPlaceholderText: { color: "#7f8c8d", fontSize: 14, marginTop: 5 },
+  imagenPlaceholderText: { fontSize: 14, marginTop: 5 },
   floatingBackButton: {
     position: "absolute",
     top: 40,
     left: 20,
     zIndex: 10,
-    backgroundColor: "#fff",
     padding: 8,
     borderRadius: 20,
     shadowColor: "#000",
@@ -291,13 +392,11 @@ const styles = StyleSheet.create({
   categoria: {
     fontSize: 12,
     fontWeight: "bold",
-    color: "#27ae60",
     marginBottom: 5,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#222",
     marginBottom: 5,
     flex: 1,
   },
@@ -312,15 +411,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 15,
   },
-  coordenadasText: { fontSize: 13, color: "#7f8c8d", marginLeft: 5 },
+  coordenadasText: { fontSize: 13, marginLeft: 5 },
   section: { marginBottom: 20 },
   sectionTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#333",
     marginBottom: 8,
   },
-  description: { fontSize: 14, color: "#555", lineHeight: 22 },
+  description: { fontSize: 14, lineHeight: 22 },
   infoRow: { flexDirection: "row", gap: 10, marginBottom: 20 },
   infoBadge: {
     flex: 1,
@@ -331,14 +429,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 6,
   },
-  infoBadgeText: { fontSize: 13, color: "#2c3e50", fontWeight: "500" },
+  infoBadgeText: { fontSize: 13, fontWeight: "500" },
   contactoRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
     gap: 8,
   },
-  contactoLinkText: { fontSize: 14, color: "#27ae60", fontWeight: "600" },
+  contactoLinkText: { fontSize: 14, fontWeight: "600" },
   horariosContainer: {
     backgroundColor: "#f9f9f9",
     padding: 12,
@@ -351,11 +449,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 4,
   },
-  horarioDia: { fontSize: 13, color: "#555", fontWeight: "500" },
-  horarioHora: { fontSize: 13, color: "#333", fontWeight: "bold" },
+  horarioDia: { fontSize: 13, fontWeight: "500" },
+  horarioHora: { fontSize: 13, fontWeight: "bold" },
   checkinButton: {
     flexDirection: "row",
-    backgroundColor: "#27ae60",
     paddingVertical: 14,
     justifyContent: "center",
     alignItems: "center",
@@ -366,7 +463,6 @@ const styles = StyleSheet.create({
   },
   checkinButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
   backButton: {
-    backgroundColor: "#333",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
